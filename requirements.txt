@@ -1,0 +1,5 @@
+deep-sort-realtime
+torch
+torchvision
+openvino-dev
+opencv-python

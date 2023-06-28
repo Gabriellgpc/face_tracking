@@ -12,6 +12,47 @@ import os
 
 from deep_sort_realtime.deepsort_tracker import DeepSort
 
+class FectureExtractor:
+    def __init__(self, model=resource_filename(__name__, 'model/backbone-mobilenetv3-large/backbone-mobilenetv3-large.xml'), device='CPU'):
+        # load and compile the model
+        ie = Core()
+        model = ie.read_model(model=model)
+        compiled_model = ie.compile_model(model=model, device_name=device)
+        self.model = compiled_model
+
+        self.output_embeds = self.model.output(0)
+
+    def preprocess(self, image):
+        """
+            image: RGB numpy array [H, W, C]
+        """
+        # ?
+        # normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+        #                                  std=[0.229, 0.224, 0.225])
+
+        # Resize to [256, 256]
+        input_tensor = cv2.resize(image, dsize=[256,256])
+
+        # Add batch dim
+        input_tensor = np.expand_dims(input_tensor, axis=0)
+
+        # Convert to [0, 1] float32
+        input_tensor = input_tensor.astype('float32') / 255.0
+
+        # Change to channels first
+        input_tensor = np.transpose(input_tensor, axes=(0, 3, 1, 2))
+
+        return input_tensor
+
+    def posprocess(self, model_out):
+        return model_out
+
+    def inference(self, image):
+        input_tensor = self.preprocess(image)
+        # output_tensor = self.model.inference(input_tensor)
+        output_tensor = self.model( [input_tensor] )[self.output_embeds]
+        embedding = self.posprocess(output_tensor)
+        return embedding
 
 class FaceDetector:
     model = None
@@ -89,10 +130,11 @@ class FaceDetector:
 @click.option('-m','--model', default=resource_filename(__name__, 'model/ultra-lightweight-face-detection-slim-320.xml'))
 def main(video, model, confidence):
 
+    encoder = FectureExtractor()
     detector = FaceDetector(model, device='CPU', confidence_thr=confidence, overlap_thr=0.7)
     video = cv2.VideoCapture(video)
 
-    tracker = DeepSort(max_age=60)
+    tracker = DeepSort(max_age=60, embedder=None)
 
     n_frames = 0
     fps_cum = 0.0
@@ -116,14 +158,20 @@ def main(video, model, confidence):
         if len(faces) != 0:
             # bbs = [ (*bbox, scores[i], 'face') for i, bbox in enumerate(faces)]
             bbs = []
+            embeds = []
             for i, bbox in enumerate(faces):
                 # print(bbox, scores[i][0], 'face')
                 xmin, ymin, xmax, ymax = bbox
                 bbox = [xmin, ymin, xmax - xmin, ymax - ymin]
                 bbs.append( (bbox, scores[i][0], 'face') )
 
+                embedding = encoder.inference( frame[ymin:ymax, xmin:xmax,:] )
+                embeds.append( embedding[0] )
+                print(embedding.shape)
 
-            tracks = tracker.update_tracks(bbs, frame=frame) # bbs expected to be a list of detections, each in tuples of ( [left,top,w,h], confidence, detection_class )
+            tracks = tracker.update_tracks(bbs,
+                                           frame=frame,
+                                           embeds=embeds) # bbs expected to be a list of detections, each in tuples of ( [left,top,w,h], confidence, detection_class )
             for track in tracks:
                 if not track.is_confirmed():
                     continue

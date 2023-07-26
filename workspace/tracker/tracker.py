@@ -73,7 +73,7 @@ class Tracker:
                     maximum overlap between detections
                 max_cosine_distance:
                     distance between embeddings of objects. That parameters helps to controls the functions responsavel to reidentify objects.
-                    greater means the object should appear more similar to the previous detections to considerer the reidentification.           
+                    greater means the object should appear more similar to the previous detections to considerer the reidentification.
         """
         self.tracker_deepsort = DeepSort(max_age=max_age,
                                          n_init=n_init,
@@ -81,6 +81,7 @@ class Tracker:
                                          nms_max_overlap=nms_max_overlap,
                                          max_cosine_distance=max_cosine_distance,
                                          embedder=None,
+                                         gating_only_position=True,
                                          )
         self.embedder = FectureExtractor()
 
@@ -103,6 +104,7 @@ class Tracker:
         # embeds = [ self.embedder.inference(frame[det[0][],,:])[0] for det in detections]
         embeddings = []
         detections = []
+        others = []
         for i, cls_id in enumerate(class_ids):
             xmin, ymin, xmax, ymax = bboxes[i]
 
@@ -118,10 +120,12 @@ class Tracker:
             # append to the detections and embeddings list
             detections.append( detection )
             embeddings.append( embedding[0] )
+            others.append( bboxes[i] )
 
         tracks = self.tracker_deepsort.update_tracks(detections,
                                                      frame=frame,
-                                                     embeds=embeddings)
+                                                     embeds=embeddings,
+                                                     others=others)
         # if not track.is_confirmed():
         #     continue
         # track_id = track.track_id

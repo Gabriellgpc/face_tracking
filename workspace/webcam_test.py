@@ -13,9 +13,10 @@ from utils import put_text_on_image, draw_boxes_with_scores
 def main(video, confidence):
 
     detector = FaceDetector(device='CPU', confidence_thr=confidence, overlap_thr=0.7)
+    fps = 150
     tracker = Tracker(max_age=30,
-                      n_init=3,
-                      max_cosine_distance= 0.2
+                      n_init=60,
+                      max_cosine_distance= 0.9
                       )
     video = cv2.VideoCapture(video)
 
@@ -44,12 +45,13 @@ def main(video, confidence):
             tracks = tracker.update(frame, bboxes, scores, clss_ids)
 
             for track in tracks:
-                if not track.is_confirmed():
-                    continue
+                # if not track.is_confirmed():
+                #     continue
                 track_id = track.track_id
-                ltrb = track.to_ltrb()
+                # ltrb = track.to_ltrb()
+                # x_min, y_min, x_max, y_max = ltrb
+                x_min, y_min, x_max, y_max = bbox = track.others
 
-                x_min, y_min, x_max, y_max = ltrb
                 cv2.rectangle(frame,
                               (int(x_min), int(y_min)),
                               (int(x_max), int(y_max)),

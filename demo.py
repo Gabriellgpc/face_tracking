@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+# @Author: Luis Condados
+# @Date:   2023-07-29 15:41:01
+# @Last Modified by:   Luis Condados
+# @Last Modified time: 2023-07-29 16:19:01
 import time
 import click
 
@@ -45,12 +50,12 @@ def main(video, confidence):
             tracks = tracker.update(frame, bboxes, scores, clss_ids)
 
             for track in tracks:
-                # if not track.is_confirmed():
-                #     continue
+                if not track.is_confirmed():
+                    continue
                 track_id = track.track_id
                 # ltrb = track.to_ltrb()
                 # x_min, y_min, x_max, y_max = ltrb
-                x_min, y_min, x_max, y_max = bbox = track.others
+                x_min, y_min, x_max, y_max  = track.others
 
                 cv2.rectangle(frame,
                               (int(x_min), int(y_min)),

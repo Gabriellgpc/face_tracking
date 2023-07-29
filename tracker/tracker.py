@@ -1,9 +1,17 @@
+# -*- coding: utf-8 -*-
+# @Author: Luis Condados
+# @Date:   2023-07-29 15:41:01
+# @Last Modified by:   Luis Condados
+# @Last Modified time: 2023-07-29 16:41:00
 from deep_sort_realtime.deepsort_tracker import DeepSort
 
 from pkg_resources import resource_filename
 from openvino.runtime import Core
 import numpy as np
 import cv2
+
+# import logging
+# logging.basicConfig(level=logging.DEBUG)
 
 class FectureExtractor:
     def __init__(self, model=resource_filename(__name__, 'backbone-mobilenetv3-large/backbone-mobilenetv3-large.xml'), device='CPU'):
@@ -101,7 +109,7 @@ class Tracker:
         #     expected to be a list of detections, each in tuples of ( [left,top,w,h], confidence, detection_class )
 
         # Loop through each detection and extract the region of the objects to passthrough the embedder network
-        # embeds = [ self.embedder.inference(frame[det[0][],,:])[0] for det in detections]
+        h, w = frame.shape[:2]
         embeddings = []
         detections = []
         others = []
@@ -114,7 +122,13 @@ class Tracker:
             detection = [ [xmin, ymin, width, height], scores[i], cls_id]
 
             # Compute embedding for the detected object
+            xmin = max(0, xmin)
+            xmax = min(w-1, xmax)
+            ymin = max(0, ymin)
+            ymax = min(h-1, ymax)
             object_isolated = frame[ymin:ymax, xmin:xmax, :]
+            # logging.debug(object_isolated.shape)
+
             embedding = self.embedder.inference( object_isolated )
 
             # append to the detections and embeddings list

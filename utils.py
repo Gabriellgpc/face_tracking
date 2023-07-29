@@ -1,5 +1,25 @@
+# -*- coding: utf-8 -*-
+# @Author: Luis Condados
+# @Date:   2023-07-29 15:41:01
+# @Last Modified by:   Luis Condados
+# @Last Modified time: 2023-07-29 16:35:59
 import numpy as np
 import cv2
+
+def image_resize(image, width=None, height=None):
+    assert width is not None or height is not None, 'width or height must be specified.'
+
+    h, w = image.shape[:2]
+    hw_ratio = h/w
+
+    if None in [width, height]:
+        if width == None:
+            width = height * (1.0 / hw_ratio)
+        else:
+            height = width * hw_ratio
+    
+    dsize = (int(width), int(height))
+    return cv2.resize(image, dsize=dsize)
 
 def non_max_suppression(boxes, overlapThresh):
     # if there are no boxes, return an empty list
